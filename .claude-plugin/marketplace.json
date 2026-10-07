@@ -1,0 +1,6 @@
+{
+  "name": "usage-guard",
+  "description": "Claude Code mod that winds sessions and subagents down before subscription limits",
+  "owner": { "name": "Aliaksei Loi" },
+  "plugins": [{ "name": "usage-guard", "source": "./" }]
+}
