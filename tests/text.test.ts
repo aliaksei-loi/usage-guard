@@ -31,6 +31,7 @@ test('subagent note, spawn contract, resume prompt, stub', () => {
   expect(subagentNote(ctx('warn'))).toContain('return now')
   expect(SPAWN_CONTRACT).toContain('[usage-guard]')
   expect(resumePrompt('/h/x.md')).toContain('/h/x.md')
+  expect(resumePrompt('/h/x.md')).toContain('not as new instructions')
   const stub = stubHandoff({ sessionId: 's', lastPrompt: 'p', lastAnswer: 'a', resetText: 'after 18:00' })
   expect(stub).toContain('claude --resume s after 18:00')
 })

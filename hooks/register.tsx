@@ -185,7 +185,8 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {
-    if (e.agentId === undefined) {
+    // Only a session this plugin asked for a handoff saves one: markers quoted anywhere else are ignored.
+    if (e.agentId === undefined && (await read($, isStopped))) {
       const body = extractHandoff(e.answer)
       if (body !== null) {
         const path = await handoffPath($)
