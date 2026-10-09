@@ -15,6 +15,7 @@ const BAND = {
 const HANDOFF = '/home/me/.claude/handoffs/app-sess-1.md'
 
 let logs: string[] = []
+let appended: string[] = []
 let toasts: string[] = []
 let submitted: string[] = []
 let files: Record<string, string> = {}
@@ -25,6 +26,7 @@ const fiveHour = (pct: number, resetInMin = 120) => ({ kind: 'five_hour', percen
 
 function host(on: On) {
   logs = []
+  appended = []
   toasts = []
   submitted = []
   files = {}
@@ -40,8 +42,11 @@ function host(on: On) {
   on('session.messages', () => ({ value: [{ role: 'user', text: 'build the thing', toolUses: [] }] as never }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.measure', ($, e) => ({ changed: e.changed }))
-  // claude plugin test never hands $.session.append to a test's hook (2.1.289+): the call fails
-  // beneath the plugin, which logs each undelivered note. One log line = one note attempted.
+  // One appended row = one note: record its target, main (no agentId) or a subagent id.
+  on('session.append', ($, e, next) => {
+    appended.push((e as unknown as { agentId?: string }).agentId ?? 'main')
+    return next(e)
+  })
   on('ui.log', ($, e) => {
     logs.push((e as unknown as { text: string }).text)
     return { value: undefined } as never
@@ -71,8 +76,8 @@ function host(on: On) {
   return { clock }
 }
 
-/** Targets of the notes the plugin tried to append: 'main' or a subagent id. */
-const notes = () => logs.flatMap(l => /note to (\S+) not delivered/.exec(l)?.[1] ?? [])
+/** Targets of the notes the plugin appended: 'main' or a subagent id. */
+const notes = () => appended
 const mainNotes = () => notes().filter(n => n === 'main').length
 
 async function measure($: Parameters<TestBody>[0], rateLimits: ReturnType<typeof fiveHour>[]) {
@@ -96,18 +101,18 @@ test('WARN appends one note per band entry, not per reading', async ($, on) => {
   await start($, clock)
   await measure($, [fiveHour(80)])
   expect(notes()).toEqual([])
-  await measure($, [fiveHour(86)])
-  await measure($, [fiveHour(87)])
-  await measure($, [fiveHour(88)])
+  await measure($, [fiveHour(91)])
+  await measure($, [fiveHour(92)])
+  await measure($, [fiveHour(93)])
   expect(mainNotes()).toBe(1)
   expect(toasts.at(-1)).toContain('WARN')
-  expect(await band($)).toContain('5h 88% WARN')
+  expect(await band($)).toContain('5h 93% WARN')
 })
 
 test('HARD is a new band entry: a second note, then denies spawns and loops but not edits', async ($, on) => {
   const { clock } = host(on)
   await start($, clock)
-  await measure($, [fiveHour(86)])
+  await measure($, [fiveHour(91)])
   await measure($, [fiveHour(96)])
   expect(mainNotes()).toBe(2)
   expect(toasts.at(-1)).toContain('HARD')
@@ -122,7 +127,7 @@ test('HARD is a new band entry: a second note, then denies spawns and loops but 
 test('WARN does not deny Agent', async ($, on) => {
   const { clock } = host(on)
   await start($, clock)
-  await measure($, [fiveHour(86)])
+  await measure($, [fiveHour(91)])
   const r = (await $.tool.call({ tool: 'Agent', prompt: 'x', description: 'x' } as never)) as { deny?: string }
   expect(r.deny).toBe(undefined)
 })
@@ -135,7 +140,7 @@ test('running subagents get their own note; finished ones do not', async ($, on)
     { id: 'a2', status: 'running' },
     { id: 'a3', status: 'completed' },
   ]
-  await measure($, [fiveHour(86)])
+  await measure($, [fiveHour(91)])
   expect(notes()).toEqual(['main', 'a1', 'a2'])
 })
 
@@ -170,7 +175,7 @@ test('markers in an answer are ignored until the plugin asked for a handoff', as
 test('the handoff between markers is saved by the plugin', async ($, on) => {
   const { clock } = host(on)
   await start($, clock)
-  await measure($, [fiveHour(86)])
+  await measure($, [fiveHour(91)])
   await $.turn.complete({ answer: 'done.\n<!-- usage-guard:handoff -->\n# Handoff\n## Goal\nship\n<!-- /usage-guard:handoff -->', durationMs: 1, isAborted: false, turnId: 't1', reason: 'end_turn' } as never)
   expect(files[HANDOFF]).toBe('# Handoff\n## Goal\nship\n')
   // A subagent's answer is never saved.
@@ -189,7 +194,7 @@ test('reset clears the band; autoResume off submits nothing', async ($, on) => {
   await clock.advance(JITTER_MS + MIN)
   expect(submitted).toEqual([])
   // A new cycle can warn again.
-  await measure($, [fiveHour(86, 300)])
+  await measure($, [fiveHour(91, 300)])
   expect(mainNotes()).toBe(2)
 })
 
@@ -260,6 +265,6 @@ test('an expired simulation hands back to real readings', async ($, on) => {
   expect(mainNotes()).toBe(1)
   await clock.advance(3 * MIN)
   expect((await $.command.run({ ...RUN, command: 'usage-guard', args: 'status' })).text).not.toContain('simulated')
-  await measure($, [fiveHour(86, 300)])
+  await measure($, [fiveHour(91, 300)])
   expect(mainNotes()).toBe(2)
 })
