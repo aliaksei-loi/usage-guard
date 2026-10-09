@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { DOWNGRADE_MS, classify, extractHandoff, formatDuration, maxBand, msToEmpty, noticeKey, parseSimulate, slug } from '../hooks/core'
+import { DOWNGRADE_MS, classify, extractHandoff, formatDuration, maxBand, noticeKey, parseSimulate, slug } from '../hooks/core'
 
 const NOW = Date.parse('2026-10-07T12:00:00Z')
 const MIN = 60_000
@@ -16,26 +16,9 @@ test('thresholds pick the band', () => {
 
 test('a passed reset time means ok and an empty window', () => {
   const s = classify(undefined, reading(99, -1), NOW, T)
-  expect(s).toEqual({ band: 'ok', pct: 0, resetsAt: null, samples: [], belowSince: null })
+  expect(s).toEqual({ band: 'ok', pct: 0, resetsAt: null, belowSince: null })
   const hard = classify(undefined, reading(99, 10), NOW, T)
   expect(classify(hard, undefined, at(11), T).band).toBe('ok')
-})
-
-test('a fast burn escalates one band', () => {
-  // 70% -> 80% in 5 min: 2%/min, 20% left = 10 min to empty, reset in 120 min.
-  const a = classify(undefined, reading(70), NOW, T)
-  const b = classify(a, reading(80), at(5), T)
-  expect(b.band).toBe('warn')
-  expect(msToEmpty(b.samples, 80)).toBe(10 * MIN)
-  // 80% -> 90% in 2 min: 10 left at 5%/min = 2 min, warn escalates to hard.
-  const c = classify(b, reading(90), at(7), T)
-  expect(c.band).toBe('hard')
-})
-
-test('no escalation when the window resets before it would empty', () => {
-  const a = classify(undefined, reading(70, 6), NOW, T)
-  const b = classify(a, reading(80, 1), at(5), T)
-  expect(b.band).toBe('ok')
 })
 
 test('a downgrade waits for the debounce', () => {
@@ -47,11 +30,10 @@ test('a downgrade waits for the debounce', () => {
   expect(later.band).toBe('ok')
 })
 
-test('a new window cycle starts the history over', () => {
+test('a new window cycle drops the band without the debounce', () => {
   const a = classify(undefined, reading(90, 10), NOW, T)
   const b = classify(a, reading(5, 300), at(1), T)
   expect(b.band).toBe('ok')
-  expect(b.samples.length).toBe(1)
 })
 
 test('helpers', () => {

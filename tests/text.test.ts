@@ -5,7 +5,7 @@ import { SPAWN_CONTRACT, mainNote, resumePrompt, stubHandoff, subagentNote } fro
 import type { WindowState } from '../types'
 
 const NOW = Date.parse('2026-10-07T12:00:00Z')
-const state = (band: WindowState['band']): WindowState => ({ band, pct: 87, resetsAt: NOW + 72 * 60_000, samples: [], belowSince: null })
+const state = (band: WindowState['band']): WindowState => ({ band, pct: 87, resetsAt: NOW + 72 * 60_000, belowSince: null })
 const ctx = (band: WindowState['band']) => ({ name: '5h' as const, state: state(band), now: NOW, sessionId: 'sess-1', handoffPath: '/h/app-sess-1.md' })
 
 test('the WARN note asks for a handoff and a resume line, never git', () => {

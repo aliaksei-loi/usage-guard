@@ -9,13 +9,6 @@ export type Config = {
 }
 
 const MINUTE = 60_000
-/** Readings older than this are ignored for the burn rate. */
-const BURN_SPAN_MS = 30 * MINUTE
-/** The burn rate needs at least this much history to count. */
-const BURN_MIN_MS = 2 * MINUTE
-/** Projected exhaustion this close escalates ok -> warn and warn -> hard. */
-const ESCALATE_WARN_MS = 30 * MINUTE
-const ESCALATE_HARD_MS = 10 * MINUTE
 /** A lower band must hold this long before the band drops. */
 export const DOWNGRADE_MS = 3 * MINUTE
 
@@ -37,18 +30,6 @@ function rawBand(pct: number, t: Thresholds): Band {
   return 'ok'
 }
 
-/** Milliseconds until the window hits 100% at the recent burn rate; null when not burning. */
-export function msToEmpty(samples: WindowState['samples'], pct: number): number | null {
-  const first = samples[0]
-  const last = samples.at(-1)
-  if (!first || !last || first === last) return null
-  const span = last.at - first.at
-  if (span < BURN_MIN_MS) return null
-  const perMs = (last.pct - first.pct) / span
-  if (perMs <= 0) return null
-  return Math.max(0, (100 - pct) / perMs)
-}
-
 /**
  * The next state of one window given a fresh reading (or none, on a clock tick).
  * A passed or moved `resetsAt` resets the window at once; a lower band only
@@ -65,30 +46,20 @@ export function classify(
   const pct = reading?.percentUsed ?? prev?.pct ?? 0
 
   if (resetsAt !== null && resetsAt <= now) {
-    return { band: 'ok', pct: 0, resetsAt: null, samples: [], belowSince: null }
+    return { band: 'ok', pct: 0, resetsAt: null, belowSince: null }
   }
-  // A later reset time than before means a new window cycle: start its history over.
+  // A later reset time than before means a new window cycle: its debounce does not carry over.
   const hasRolled = prev?.resetsAt != null && resetsAt !== null && resetsAt > prev.resetsAt + MINUTE
 
-  const kept = (hasRolled ? [] : (prev?.samples ?? [])).filter(s => now - s.at <= BURN_SPAN_MS)
-  const samples = reading ? [...kept, { at: now, pct }] : kept
-
-  let band = rawBand(pct, t)
-  const toEmpty = msToEmpty(samples, pct)
-  const toReset = resetsAt === null ? Infinity : resetsAt - now
-  if (toEmpty !== null && toEmpty < toReset) {
-    if (band === 'ok' && toEmpty < ESCALATE_WARN_MS) band = 'warn'
-    else if (band === 'warn' && toEmpty < ESCALATE_HARD_MS) band = 'hard'
-  }
-
+  const band = rawBand(pct, t)
   const was = hasRolled ? undefined : prev
   if (was && RANK[band] < RANK[was.band]) {
     const since = was.belowSince ?? now
     if (now - since < DOWNGRADE_MS) {
-      return { band: was.band, pct, resetsAt, samples, belowSince: since }
+      return { band: was.band, pct, resetsAt, belowSince: since }
     }
   }
-  return { band, pct, resetsAt, samples, belowSince: null }
+  return { band, pct, resetsAt, belowSince: null }
 }
 
 /** One dedupe key per band entry of a window cycle: warns once, re-arms on the next cycle. */

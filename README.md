@@ -16,9 +16,8 @@ Answer `y` to add the marketplace, pick the user scope. It is active at once.
 
 | Band | Default | What happens |
 | --- | --- | --- |
-| WARN | 5h 85% / 7d 90% | One note to the main session and to every running subagent: finish the current step, start nothing new, stop `/loop` or ralph, end the turn with a handoff. A toast and a band above the prompt with % and countdown. |
+| WARN | 5h 90% / 7d 90% | One note to the main session and to every running subagent: finish the current step, start nothing new, stop `/loop` or ralph, end the turn with a handoff. A toast and a band above the prompt with % and countdown. |
 | HARD | 5h 95% / 7d 97% | A second, stricter note, and `Agent`, `Workflow`, `ScheduleWakeup`, `CronCreate` are denied until the reset. Edits, writes and Bash are never denied. |
-| Fast burn | | If the current burn rate empties the window before it resets, the band escalates one step (within 30 min: ok to WARN; within 10 min: WARN to HARD). |
 | Reset | | Toast and band "limit restored". With `autoResume` on, sessions it wound down get one "continue from the handoff" prompt after a random 0 to 5 min delay. |
 | Limit hit anyway | | On a `rate_limit` stop failure it writes a stub handoff (if none exists) and prints the `claude --resume` line. |
 
@@ -45,7 +44,7 @@ The plugin writes the file itself, so there is no permission prompt and nothing 
 /usage-guard simulate off                     back to real readings
 ```
 
-`simulate` is the way to try it without burning quota: `simulate 5h 86` shows WARN, `simulate 5h 96 reset-in 2m` shows HARD and then the reset two minutes later.
+`simulate` is the way to try it without burning quota: `simulate 5h 91` shows WARN, `simulate 5h 96 reset-in 2m` shows HARD and then the reset two minutes later.
 
 ## Settings
 
@@ -53,7 +52,7 @@ In `/plugin` (or `pluginConfigs.usage-guard` in settings):
 
 | Field | Default |
 | --- | --- |
-| `warn5h`, `warn7d` | 85, 90 |
+| `warn5h`, `warn7d` | 90, 90 |
 | `hard5h`, `hard7d` | 95, 97 |
 | `autoResume` | false |
 

@@ -1,6 +1,6 @@
 {
   "name": "usage-guard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Winds sessions and subagents down before the 5-hour or 7-day subscription limit: one wind-down note per band, a handoff file, spawn and loop denies near the limit, optional resume after the reset",
   "author": { "name": "Aliaksei Loi" },
   "license": "MIT",
@@ -11,7 +11,7 @@
       "type": "number",
       "title": "WARN at 5-hour %",
       "description": "Tell every agent to finish the current step and write a handoff once the 5-hour window reaches this percent",
-      "default": 85
+      "default": 90
     },
     "warn7d": {
       "type": "number",

@@ -35,7 +35,7 @@ function num(v: unknown, fallback: number): number {
 export function readConfig(o: PluginOptions): Config {
   return {
     thresholds: {
-      '5h': { warn: num(o.warn5h, 85), hard: num(o.hard5h, 95) },
+      '5h': { warn: num(o.warn5h, 90), hard: num(o.hard5h, 95) },
       '7d': { warn: num(o.warn7d, 90), hard: num(o.hard7d, 97) },
     },
     autoResume: o.autoResume === true,

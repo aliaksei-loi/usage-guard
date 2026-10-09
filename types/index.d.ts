@@ -7,14 +7,12 @@ export type Reading = { kind: string; percentUsed: number; resetsAt?: string }
 
 /**
  * One window's band, its last percent, when it resets (ms, null when unknown),
- * the recent readings the burn rate is drawn from, and since when a lower band
- * has held (the downgrade debounce).
+ * and since when a lower band has held (the downgrade debounce).
  */
 export type WindowState = {
   band: Band
   pct: number
   resetsAt: number | null
-  samples: { at: number; pct: number }[]
   belowSince: number | null
 }
 
